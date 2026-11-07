@@ -1,0 +1,1547 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f5f5">
+  <meta name="description" content="Create and download photo collages in your browser. Free, private, and easy to use.">
+  <title>Collage Studio — Free Online Photo Collage Maker</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #232323;
+      --muted: #777;
+      --line: #e8e8e8;
+      --paper: #fff;
+      --canvas-bg: #f0f0f0;
+      --accent: #ff6688;
+      --accent-soft: #fff0f4;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 320px; min-height: 100vh; color: var(--ink); background: var(--canvas-bg); }
+    button, input, select { font: inherit; }
+    button { color: inherit; }
+    button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid #ff9bb0; outline-offset: 2px; }
+
+    .app { display: grid; grid-template: 64px minmax(0, 1fr) / minmax(0, 1fr); height: 100vh; min-height: 540px; overflow: hidden; }
+    .topbar { z-index: 3; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: rgba(255,255,255,.94); border-bottom: 1px solid var(--line); }
+    .brand { display: inline-flex; align-items: center; gap: 9px; color: #8548bb; font-weight: 800; font-size: 19px; letter-spacing: -.5px; }
+    .brand-mark { display: grid; width: 26px; height: 26px; place-items: center; border-radius: 8px; color: white; background: linear-gradient(140deg, #ffca47 0 28%, #ff6384 29% 56%, #aa52c9 57% 77%, #478be2 78%); }
+    .brand-mark svg { width: 17px; height: 17px; }
+    .top-actions { display: flex; align-items: center; gap: 14px; }
+    .history { display: flex; align-items: center; gap: 3px; padding: 4px; background: #f5f5f5; border: 1px solid #ededed; border-radius: 24px; }
+    .icon-button { display: grid; place-items: center; width: 34px; height: 32px; border: 0; border-radius: 50%; color: #555; background: transparent; cursor: pointer; }
+    .icon-button:hover:not(:disabled) { background: white; }
+    .icon-button:disabled { opacity: .35; cursor: default; }
+    .download { display: inline-flex; align-items: center; gap: 9px; padding: 10px 17px; border: 0; border-radius: 24px; color: white; background: #222; font-size: 14px; font-weight: 650; cursor: pointer; }
+    .download:hover { background: #444; }
+    .download:disabled { opacity: .45; cursor: not-allowed; }
+
+    .editor { position: relative; display: flex; min-width: 0; min-height: 0; }
+    .rail { z-index: 2; display: flex; flex: 0 0 74px; flex-direction: column; align-items: stretch; gap: 3px; margin: auto 0 auto 20px; padding: 8px 6px; border: 1px solid rgba(0,0,0,.035); border-radius: 17px; background: rgba(255,255,255,.97); box-shadow: 0 5px 20px rgba(0,0,0,.06); }
+    .tool { display: flex; min-height: 47px; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 4px 1px; border: 0; border-radius: 10px; color: #585858; background: transparent; font-size: 10px; cursor: pointer; }
+    .tool svg { width: 21px; height: 21px; }
+    .tool:hover, .tool.active { color: #a64b9d; background: #fbf0f8; }
+    .rail-divider { height: 1px; margin: 3px 4px; background: var(--line); }
+
+    .panel { position: absolute; z-index: 2; top: 50%; left: 103px; width: 292px; max-height: min(76vh, 690px); overflow: auto; padding: 20px; border: 1px solid var(--line); border-radius: 16px; background: white; box-shadow: 0 12px 40px rgba(0,0,0,.13); transform: translateY(-50%); }
+    .panel[hidden] { display: none; }
+    .panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .panel-head h2 { margin: 0; font-size: 16px; letter-spacing: -.25px; }
+    .close-panel { width: 28px; height: 28px; border: 0; border-radius: 50%; color: #666; background: #f5f5f5; cursor: pointer; }
+    .panel-copy { margin: -7px 0 15px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .section-label { margin: 17px 0 9px; color: #626262; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+    .grid-counts { display: flex; gap: 6px; overflow-x: auto; margin: -2px -2px 13px; padding: 3px 2px 8px; scrollbar-width: thin; }
+    .grid-count { flex: 0 0 36px; height: 34px; border: 1px solid var(--line); border-radius: 9px; color: #555; background: white; font-size: 12px; font-weight: 650; cursor: pointer; }
+    .grid-count:hover, .grid-count.selected { border-color: #e89ab3; color: #a64b78; background: #fff8fa; }
+    .choice-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+    .choice { display: flex; min-width: 0; min-height: 76px; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 7px 4px; border: 1px solid var(--line); border-radius: 11px; background: white; font-size: 10px; cursor: pointer; }
+    .choice:hover, .choice.selected { border-color: #e89ab3; background: #fff8fa; }
+    .layout-icon { position: relative; display: block; width: 49px; height: 40px; flex: 0 0 auto; overflow: hidden; border: 1px solid #d5d5d5; border-radius: 5px; background: white; }
+    .layout-icon i { position: absolute; display: block; border: 1px solid white; border-radius: 1px; background: #f2c9d3; }
+    .choice.selected .layout-icon i { background: #e995ad; }
+    .layout-label { width: 100%; overflow: hidden; text-overflow: ellipsis; text-align: center; white-space: nowrap; }
+    .size-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .size-choice { padding: 10px 8px; border: 1px solid var(--line); border-radius: 9px; background: white; text-align: left; cursor: pointer; }
+    .size-choice strong { display: block; font-size: 12px; }
+    .size-choice span { color: var(--muted); font-size: 10px; }
+    .size-choice:hover, .size-choice.selected { border-color: #e89ab3; background: #fff8fa; }
+    .custom-size-fields { display: grid; grid-template-columns: minmax(0, 1fr) 12px minmax(0, 1fr) 62px; align-items: end; gap: 7px; }
+    .custom-size-field { display: block; min-width: 0; color: #555; font-size: 11px; font-weight: 600; }
+    .custom-size-field input { width: 100%; min-width: 0; margin-top: 5px; padding: 8px; border: 1px solid #dedede; border-radius: 8px; font-size: 12px; }
+    .custom-size-times { padding-bottom: 8px; color: var(--muted); text-align: center; }
+    .custom-size-fields select { width: auto; min-width: 0; padding: 8px 4px; font-size: 12px; }
+    .custom-size-note { margin: 9px 0; color: var(--muted); font-size: 10px; line-height: 1.45; }
+    .color-grid { display: flex; flex-wrap: wrap; gap: 9px; }
+    .color-choice { width: 30px; height: 30px; border: 2px solid white; border-radius: 50%; box-shadow: 0 0 0 1px #ddd; cursor: pointer; }
+    .color-choice.selected { box-shadow: 0 0 0 2px #dd6891; }
+    .control-label { display: block; margin: 13px 0 6px; color: #555; font-size: 12px; font-weight: 600; }
+    .panel input[type="range"] { width: 100%; accent-color: #cf5886; }
+    .panel input[type="text"], .panel select, .panel textarea { width: 100%; padding: 9px 10px; border: 1px solid #dedede; border-radius: 8px; background: white; font-size: 13px; }
+    .panel textarea { min-height: 68px; resize: vertical; }
+    .panel input[type="color"] { width: 38px; height: 32px; padding: 2px; border: 1px solid var(--line); border-radius: 7px; background: white; vertical-align: middle; cursor: pointer; }
+    .secondary-button, .danger-button { width: 100%; margin-top: 10px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 9px; background: white; font-size: 12px; font-weight: 650; cursor: pointer; }
+    .secondary-button:hover { background: #f8f8f8; }
+    .danger-button { color: #a3425d; }
+    .photo-list { display: grid; gap: 8px; }
+    .photo-row { display: flex; align-items: center; gap: 8px; padding: 6px; border: 1px solid var(--line); border-radius: 9px; }
+    .photo-row.selected { border-color: #e89ab3; background: #fff8fa; }
+    .photo-row.library-selected { border-color: #8a61c2; background: #f7f2ff; box-shadow: 0 0 0 1px #8a61c2; }
+    .photo-filters { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin: 8px 0 10px; }
+    .photo-filter { padding: 7px 4px; border: 1px solid var(--line); border-radius: 8px; background: white; color: #666; font-size: 10px; cursor: pointer; }
+    .photo-filter.selected { border-color: #e89ab3; color: #a64b78; background: #fff8fa; }
+    .photo-thumb { width: 43px; height: 43px; flex: 0 0 auto; border-radius: 6px; object-fit: cover; background: #f0f0f0; }
+    .photo-pick { min-width: 0; flex: 1; overflow: hidden; padding: 3px 0; border: 0; background: transparent; text-align: left; cursor: pointer; }
+    .photo-pick strong, .photo-pick span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .photo-pick strong { font-size: 11px; }
+    .photo-pick span { margin-top: 3px; color: var(--muted); font-size: 10px; }
+    .remove-photo { border: 0; color: #888; background: transparent; font-size: 18px; cursor: pointer; }
+    .sticker-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    .sticker-choice { padding: 7px 2px; border: 1px solid var(--line); border-radius: 8px; background: white; font-size: 23px; cursor: pointer; }
+    .sticker-choice:hover { background: #fff8fa; }
+    .frame-grid { display: grid; gap: 8px; }
+    .frame-choice { padding: 10px; border: 1px solid var(--line); border-radius: 9px; background: white; text-align: left; cursor: pointer; }
+    .frame-choice.selected, .frame-choice:hover { border-color: #e89ab3; }
+    .empty-note { padding: 12px; border-radius: 9px; color: var(--muted); background: #f7f7f7; font-size: 12px; line-height: 1.5; }
+    .upload-small { display: inline-flex; justify-content: center; align-items: center; gap: 8px; width: 100%; padding: 10px; border: 0; border-radius: 9px; color: white; background: #292929; font-size: 12px; font-weight: 650; cursor: pointer; }
+
+    .workspace { position: relative; display: flex; flex: 1; min-width: 0; min-height: 0; align-items: flex-start; justify-content: flex-start; overflow: auto; background-color: #f1f1f1; background-image: radial-gradient(#dedede 1px, transparent 1px); background-size: 9px 9px; }
+    .canvas-wrap { display: none; width: max-content; height: max-content; flex: 0 0 auto; margin: auto; overflow: visible; box-shadow: 0 9px 32px rgba(0,0,0,.12); }
+    .canvas-wrap.visible { display: block; }
+    #collage { display: block; max-width: none; touch-action: none; cursor: grab; }
+    #collage.dragging { cursor: grabbing; }
+    .drop-zone { display: grid; width: min(590px, calc(100vw - 160px)); min-height: 435px; flex: 0 0 auto; place-items: center; margin: auto; padding: 12px; border: 1px solid #e8e8e8; border-radius: 27px; background: rgba(255,255,255,.9); }
+    .drop-zone[hidden] { display: none; }
+    .drop-zone.dragover { border-color: #d2608e; background: #fff8fa; }
+    .drop-inner { display: flex; width: 100%; min-height: 410px; flex-direction: column; align-items: center; justify-content: center; padding: 28px 20px; border: 2px dashed #e5e5e5; border-radius: 20px; text-align: center; }
+    .upload-art { display: grid; width: 106px; height: 86px; place-items: center; margin-bottom: 19px; color: #dd7093; }
+    .upload-art svg { width: 94px; height: 80px; }
+    .drop-inner h1 { max-width: 360px; margin: 0 0 23px; font-size: clamp(18px, 2vw, 22px); line-height: 1.35; letter-spacing: -.5px; }
+    .upload-main { display: inline-flex; align-items: center; justify-content: center; gap: 9px; padding: 11px 22px; border: 0; border-radius: 24px; color: white; background: #222; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .upload-main:hover { background: #444; }
+    .file-hint { margin: 10px 0 26px; color: #777; font-size: 10px; }
+    .privacy-note { max-width: 310px; margin: 0; color: #666; font-size: 12px; line-height: 1.6; }
+    .zoom-bar { position: fixed; z-index: 1; right: 24px; bottom: 20px; display: flex; align-items: center; gap: 7px; padding: 5px 8px; border: 1px solid #e8e8e8; border-radius: 13px; background: rgba(255,255,255,.97); box-shadow: 0 4px 16px rgba(0,0,0,.07); }
+    .zoom-bar .icon-button { width: 32px; height: 30px; border-radius: 8px; }
+    #zoom-value { min-width: 37px; text-align: center; font-size: 12px; }
+    .zoom-divider { width: 1px; height: 24px; margin: 0 2px; background: var(--line); }
+    .zoom-fit { display: inline-flex; align-items: center; gap: 6px; padding: 6px 7px; border: 0; border-radius: 7px; background: transparent; font-size: 12px; cursor: pointer; }
+    .zoom-fit:hover { background: #f3f3f3; }
+    .toast { position: absolute; z-index: 5; top: 20px; left: 50%; max-width: min(500px, calc(100% - 40px)); padding: 11px 16px; border-radius: 10px; color: white; background: #333; box-shadow: 0 6px 20px #0002; font-size: 13px; opacity: 0; pointer-events: none; transform: translate(-50%, -8px); transition: opacity .2s, transform .2s; }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    .file-input { display: none; }
+
+    @media (max-width: 700px) {
+      .app { grid-template-rows: 56px minmax(0, 1fr); min-height: 500px; }
+      .topbar { padding: 0 12px; }
+      .brand { font-size: 16px; }
+      .top-actions { gap: 7px; }
+      .download { padding: 9px 12px; font-size: 12px; }
+      .editor { flex-direction: column-reverse; }
+      .rail { position: absolute; right: 8px; bottom: 9px; left: 8px; flex: 0 0 auto; flex-direction: row; justify-content: space-around; gap: 0; margin: 0; padding: 4px; border-radius: 13px; }
+      .tool { min-width: 39px; min-height: 48px; font-size: 9px; }
+      .tool svg { width: 19px; height: 19px; }
+      .rail-divider { width: 1px; height: 30px; margin: auto 2px; }
+      .workspace { min-height: 0; padding-bottom: 60px; }
+      .drop-zone { width: min(500px, calc(100vw - 38px)); min-height: 350px; }
+      .drop-inner { min-height: 326px; padding: 18px 12px; }
+      .upload-art { height: 65px; margin-bottom: 10px; }
+      .upload-art svg { width: 78px; height: 65px; }
+      .drop-inner h1 { margin-bottom: 16px; }
+      .file-hint { margin-bottom: 15px; }
+      .zoom-bar { right: 12px; bottom: 72px; }
+      .panel { top: auto; bottom: 67px; left: 8px; width: min(330px, calc(100vw - 16px)); max-height: 66vh; transform: none; }
+      .zoom-bar { right: 12px; bottom: 72px; }
+    }
+    @media (max-width: 400px) {
+      .tool { min-width: 34px; font-size: 8px; }
+      .tool svg { width: 18px; height: 18px; }
+      .rail { right: 4px; left: 4px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="Collage Studio home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="4" y="4" width="16" height="16" rx="3"></rect><circle cx="9" cy="9" r="1.5"></circle><path d="m5 17 5-5 3 3 2-2 4 4"></path>
+          </svg>
+        </span>
+        <span>Collage Studio</span>
+      </a>
+      <div class="top-actions">
+        <div class="history" aria-label="Edit history">
+          <button class="icon-button" id="undo" aria-label="Undo" title="Undo" disabled>
+            <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 14 4 9l5-5"></path><path d="M4 9h9a6 6 0 0 1 0 12h-2"></path></svg>
+          </button>
+          <button class="icon-button" id="redo" aria-label="Redo" title="Redo" disabled>
+            <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m15 14 5-5-5-5"></path><path d="M20 9h-9a6 6 0 0 0 0 12h2"></path></svg>
+          </button>
+        </div>
+        <button class="download" id="download" disabled>
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12m0 0 4-4m-4 4-4-4"></path><path d="M5 15v5h14v-5"></path></svg>
+          Download
+        </button>
+      </div>
+    </header>
+
+    <main class="editor">
+      <nav class="rail" aria-label="Editor tools">
+        <button class="tool" data-panel="templates" aria-label="Templates">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="4" width="14" height="17" rx="2"></rect><path d="M9 4V2h6v2M8 9h8M8 13h5"></path></svg><span>Templates</span>
+        </button>
+        <button class="tool" data-panel="grids" aria-label="Grids">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="8" height="18" rx="1.5"></rect><rect x="13" y="3" width="8" height="8" rx="1.5"></rect><rect x="13" y="13" width="8" height="8" rx="1.5"></rect></svg><span>Grids</span>
+        </button>
+        <button class="tool" data-panel="size" aria-label="Size">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16v16H4z"></path><path d="M8 8h8v8H8z"></path></svg><span>Size</span>
+        </button>
+        <span class="rail-divider" aria-hidden="true"></span>
+        <button class="tool" data-panel="photo" aria-label="Photo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="15" height="15" rx="2"></rect><path d="m5 17 4-4 3 3 2-2 3 3"></path><circle cx="8" cy="9" r="1"></circle><circle cx="18" cy="7" r="4"></circle><path d="M18 5v4m-2-2h4"></path></svg><span>Photo</span>
+        </button>
+        <button class="tool" data-panel="text" aria-label="Text">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 19 9 5h2l6 14M5 14h10"></path><path d="M15 7h6m-3-3v12"></path></svg><span>Text</span>
+        </button>
+        <button class="tool" data-panel="sticker" aria-label="Sticker">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"></path></svg><span>Sticker</span>
+        </button>
+        <button class="tool" data-panel="background" aria-label="Background">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16v16H4z"></path><path d="M7 7h10v10H7zM4 4l16 16M8 4l12 12M4 8l12 12"></path></svg><span>Background</span>
+        </button>
+        <button class="tool" data-panel="frames" aria-label="Frames">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"></rect><rect x="6" y="6" width="12" height="12" rx="1"></rect></svg><span>Frames</span>
+        </button>
+      </nav>
+
+      <aside class="panel" id="panel" hidden aria-label="Tool options"></aside>
+      <section class="workspace" id="workspace" aria-label="Collage workspace">
+        <div class="drop-zone" id="drop-zone">
+          <div class="drop-inner">
+            <div class="upload-art" aria-hidden="true">
+              <svg viewBox="0 0 100 82" fill="none">
+                <path d="M23 18 73 15l7 49-51 5-6-51Z" fill="#ffd7d5" stroke="#262626" stroke-width="2.5" stroke-linejoin="round"></path>
+                <circle cx="39" cy="32" r="5" stroke="#292929" stroke-width="2.5"></circle>
+                <path d="m30 56 13-13 9 8 12-14 8 9" stroke="#292929" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                <path d="m11 26 6-7m-2 14-8 2m64-27 4-7m3 14 7-5" stroke="#f08ca7" stroke-width="5" stroke-linecap="round"></path>
+                <path d="m83 50 14 8-7 2 5 9-5 3-5-9-4 5-2-18Z" fill="white" stroke="#292929" stroke-width="2.5" stroke-linejoin="round"></path>
+              </svg>
+            </div>
+            <h1>Drop your photos here or click to browse from your device</h1>
+            <button class="upload-main" id="upload-main">
+              <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="m5 17 4-4 3 3 3-4 4 5"></path><path d="M12 3v7m-3-3 3-4 3 4"></path></svg>
+              Upload Images
+            </button>
+            <p class="file-hint">JPG, PNG, GIF, or WebP · up to 100 photos</p>
+            <p class="privacy-note">Your photos stay on this device and are never uploaded to a server.</p>
+          </div>
+        </div>
+        <div class="canvas-wrap" id="canvas-wrap"><canvas id="collage" aria-label="Your collage. Select a photo cell and drag to reposition its image."></canvas></div>
+        <div class="zoom-bar" aria-label="Canvas zoom controls">
+          <button class="icon-button" id="zoom-out" aria-label="Zoom out">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"></path></svg>
+          </button>
+          <span id="zoom-value">Fit</span>
+          <button class="icon-button" id="zoom-in" aria-label="Zoom in">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14m-7-7h14"></path></svg>
+          </button>
+          <span class="zoom-divider"></span>
+          <button class="zoom-fit" id="zoom-fit">
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m12 3 9 5-9 5-9-5 9-5Z"></path><path d="m3 12 9 5 9-5M3 16l9 5 9-5"></path></svg>
+            Fit
+          </button>
+        </div>
+      </section>
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+      <input class="file-input" id="file-input" type="file" accept="image/jpeg,image/png,image/gif,image/webp" multiple>
+    </main>
+  </div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const $ = (selector) => document.querySelector(selector);
+      const canvas = $("#collage");
+      const ctx = canvas.getContext("2d");
+      const panel = $("#panel");
+      const workspace = $("#workspace");
+      const dropZone = $("#drop-zone");
+      const canvasWrap = $("#canvas-wrap");
+      const fileInput = $("#file-input");
+      const MAX_PHOTOS = 100;
+
+      const sizes = [
+        { id: "square", label: "Square", width: 1600, height: 1600, detail: "1600 × 1600 px" },
+        { id: "portrait", label: "Portrait", width: 1280, height: 1600, detail: "4:5 · 1280 × 1600 px" },
+        { id: "hd-landscape", label: "HD 16:9", width: 1920, height: 1080, detail: "1920 × 1080 px" },
+        { id: "hd-portrait", label: "HD 9:16 Portrait", width: 1080, height: 1920, detail: "1080 × 1920 px" },
+        { id: "print-30", label: "30 × 30 cm", width: 3543, height: 3543, detail: "300 DPI · 3543 × 3543 px" },
+        { id: "print-20", label: "20 × 20 cm", width: 2362, height: 2362, detail: "300 DPI · 2362 × 2362 px" },
+        { id: "landscape", label: "Landscape", width: 1600, height: 1000, detail: "16:10 · 1600 × 1000 px" }
+      ];
+      const MAX_CANVAS_EDGE = 8192;
+      const MAX_CANVAS_PIXELS = 40000000;
+      const PIXELS_PER_CM = 300 / 2.54;
+      const colors = ["#ffffff", "#f7e9e9", "#f8e6c9", "#e7f0dc", "#dcecf4", "#e8e1f4", "#f4dce9", "#252525"];
+      const stickers = ["✨", "❤️", "🌸", "☀️", "⭐", "🎉", "🌈", "🍀", "🦋", "💫"];
+      const frames = [
+        { id: "none", label: "No frame", color: null, width: 0 },
+        { id: "white", label: "Classic white", color: "#ffffff", width: 24 },
+        { id: "dark", label: "Ink", color: "#262626", width: 18 },
+        { id: "pink", label: "Rose", color: "#f19ab3", width: 18 }
+      ];
+
+      let state = {
+        photos: [],
+        slotPhotos: [],
+        layout: "classic-quad-grid",
+        size: "square",
+        customWidth: 1200,
+        customHeight: 1200,
+        customUnit: "px",
+        background: "#ffffff",
+        marginAll: 26,
+        slotMargins: [],
+        spacing: 16,
+        corner: 0,
+        frame: "none",
+        items: [],
+        selectedSlot: 0,
+        selectedItem: null
+      };
+      let past = [];
+      let future = [];
+      let zoom = 1;
+      let fitZoom = 1;
+      let fitMode = true;
+      let pendingPhotoCount = 0;
+      let pointerDrag = null;
+      let photoCellSelected = false;
+      let slotSelected = false;
+      let photoFilter = "all";
+      let selectedLibraryPhotoId = null;
+      let toastTimer;
+
+      function cloneState(source) {
+        return {
+          ...source,
+          photos: source.photos.map((photo) => ({ ...photo })),
+          slotMargins: source.slotMargins.map((margins) => ({ ...margins })),
+          slotPhotos: [...source.slotPhotos],
+          items: source.items.map((item) => ({ ...item }))
+        };
+      }
+
+      function commit() {
+        past.push(cloneState(state));
+        if (past.length > 40) past.shift();
+        future = [];
+        updateHistoryButtons();
+      }
+
+      function updateHistoryButtons() {
+        $("#undo").disabled = past.length === 0;
+        $("#redo").disabled = future.length === 0;
+      }
+
+      function undo() {
+        if (!past.length) return;
+        future.push(cloneState(state));
+        state = past.pop();
+        gridFilterCount = getLayout().count;
+        updateHistoryButtons();
+        render();
+      }
+
+      function redo() {
+        if (!future.length) return;
+        past.push(cloneState(state));
+        state = future.pop();
+        gridFilterCount = getLayout().count;
+        updateHistoryButtons();
+        render();
+      }
+
+      function showToast(message) {
+        const toast = $("#toast");
+        toast.textContent = message;
+        toast.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove("show"), 3200);
+      }
+
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, (char) => ({
+          "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+        })[char]);
+      }
+
+      const photoCounts = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+      let gridFilterCount = 4;
+
+      function slot(id, row, column, rowSpan, colSpan, aspectRatio, role) {
+        return { id, row, column, rowSpan, colSpan, aspectRatio, role };
+      }
+
+      function defineLayout(id, photoCount, name, structure, rows, columns, slots) {
+        return {
+          id,
+          count: photoCount,
+          label: name,
+          structure,
+          gridDimensions: { rows, columns },
+          slots,
+          boxes: slots.map((item) => ({
+            x: item.column / columns,
+            y: item.row / rows,
+            w: item.colSpan / columns,
+            h: item.rowSpan / rows
+          }))
+        };
+      }
+
+      const layouts = [
+        defineLayout("single-full-focus", 1, "Single Full Focus", "1×1", 1, 1, [
+          slot(1, 0, 0, 1, 1, "3:4", "primary_feature")
+        ]),
+        defineLayout("vertical-split-comparison", 2, "Vertical Split Comparison", "1×2", 1, 2, [
+          slot(1, 0, 0, 1, 1, "1:1", "left_panel"),
+          slot(2, 0, 1, 1, 1, "1:1", "right_panel")
+        ]),
+        defineLayout("featured-left-split-stack", 4, "Featured Left Split Stack", "Asymmetrical 4-Tile", 2, 3, [
+          slot(1, 0, 0, 2, 1, "3:4", "hero_vertical"),
+          slot(2, 0, 1, 1, 1, "1:1", "top_right_square"),
+          slot(3, 0, 2, 1, 1, "1:1", "top_far_right_square"),
+          slot(4, 1, 1, 1, 2, "16:9", "bottom_wide_banner")
+        ]),
+        defineLayout("classic-quad-grid", 4, "Classic Quad Grid", "2×2", 2, 2, [
+          slot(1, 0, 0, 1, 1, "16:9", "top_left"),
+          slot(2, 0, 1, 1, 1, "16:9", "top_right"),
+          slot(3, 1, 0, 1, 1, "16:9", "bottom_left"),
+          slot(4, 1, 1, 1, 1, "16:9", "bottom_right")
+        ]),
+        defineLayout("hero-anchor-sub-grid", 5, "Hero Anchor with 2×2 Sub-Grid", "Asymmetrical 5-Tile", 2, 3, [
+          slot(1, 0, 0, 2, 1, "3:4", "hero_left"),
+          slot(2, 0, 1, 1, 1, "1:1", "mid_top_square"),
+          slot(3, 0, 2, 1, 1, "16:9", "right_top_wide"),
+          slot(4, 1, 1, 1, 1, "1:1", "mid_bottom_square"),
+          slot(5, 1, 2, 1, 1, "16:9", "right_bottom_wide")
+        ]),
+        defineLayout("symmetrical-3x2-matrix", 6, "Symmetrical 3×2 Matrix", "2×3", 2, 3, [
+          slot(1, 0, 0, 1, 1, "16:9", "row1_col1"),
+          slot(2, 0, 1, 1, 1, "16:9", "row1_col2"),
+          slot(3, 0, 2, 1, 1, "16:9", "row1_col3"),
+          slot(4, 1, 0, 1, 1, "16:9", "row2_col1"),
+          slot(5, 1, 1, 1, 1, "16:9", "row2_col2"),
+          slot(6, 1, 2, 1, 1, "16:9", "row2_col3")
+        ]),
+        defineLayout("center-hero-flanked-mosaic", 7, "Center Hero Flanked Mosaic", "Asymmetrical Tile Matrix", 3, 3, [
+          slot(1, 0, 0, 1, 1, "1:1", "top_left"),
+          slot(2, 0, 1, 2, 1, "3:4", "center_hero"),
+          slot(3, 0, 2, 1, 1, "1:1", "top_right"),
+          slot(4, 1, 0, 1, 1, "1:1", "mid_left_overlay"),
+          slot(5, 1, 2, 1, 1, "1:1", "mid_right_overlay"),
+          slot(6, 2, 0, 1, 1, "1:1", "bottom_left"),
+          slot(7, 2, 2, 1, 1, "3:4", "bottom_right")
+        ]),
+        defineLayout("dual-row-octo-grid", 8, "Dual Row Octo Grid", "2×4", 2, 4, [
+          slot(1, 0, 0, 1, 1, "1:1", "row1_col1"),
+          slot(2, 0, 1, 1, 1, "1:1", "row1_col2"),
+          slot(3, 0, 2, 1, 1, "1:1", "row1_col3"),
+          slot(4, 0, 3, 1, 1, "1:1", "row1_col4"),
+          slot(5, 1, 0, 1, 1, "1:1", "row2_col1"),
+          slot(6, 1, 1, 1, 1, "1:1", "row2_col2"),
+          slot(7, 1, 2, 1, 1, "1:1", "row2_col3"),
+          slot(8, 1, 3, 1, 1, "1:1", "row2_col4")
+        ]),
+        defineLayout("symmetrical-3x3-rubik-grid", 9, "Symmetrical 3×3 Rubik Grid", "3×3", 3, 3, [
+          slot(1, 0, 0, 1, 1, "16:9", "top_left"),
+          slot(2, 0, 1, 1, 1, "16:9", "top_center"),
+          slot(3, 0, 2, 1, 1, "16:9", "top_right"),
+          slot(4, 1, 0, 1, 1, "16:9", "mid_left"),
+          slot(5, 1, 1, 1, 1, "3:4", "center_focal"),
+          slot(6, 1, 2, 1, 1, "16:9", "mid_right"),
+          slot(7, 2, 0, 1, 1, "16:9", "bottom_left"),
+          slot(8, 2, 1, 1, 1, "16:9", "bottom_center"),
+          slot(9, 2, 2, 1, 1, "16:9", "bottom_right")
+        ]),
+        defineLayout("flanked-core-mosaic", 10, "Flanked Core Mosaic", "Hybrid Split", 3, 4, [
+          slot(1, 0, 0, 1, 1, "1:1", "col1_top"),
+          slot(2, 1, 0, 1, 1, "1:1", "col1_mid"),
+          slot(3, 2, 0, 1, 1, "1:1", "col1_bottom"),
+          slot(4, 0, 3, 1, 1, "1:1", "col4_top"),
+          slot(5, 1, 3, 1, 1, "1:1", "col4_mid"),
+          slot(6, 2, 3, 1, 1, "1:1", "col4_bottom"),
+          slot(7, 0, 1, 1, 2, "16:9", "center_top"),
+          slot(8, 1, 1, 1, 1, "3:4", "center_mid_left"),
+          slot(9, 1, 2, 1, 1, "3:4", "center_mid_right"),
+          slot(10, 2, 1, 1, 2, "16:9", "center_bottom")
+        ]),
+        defineLayout("central-feature-wall", 11, "Central Feature Wall", "Asymmetrical 11-Tile", 4, 4, [
+          slot(1, 0, 0, 2, 2, "1:1", "top_left_large_hero"),
+          slot(2, 0, 2, 1, 2, "1:1", "top_row_col3"),
+          slot(3, 1, 2, 1, 1, "1:1", "mid_row_col3"),
+          slot(4, 1, 3, 1, 1, "1:1", "mid_row_col4"),
+          slot(5, 2, 0, 1, 1, "1:1", "bottom_row_col1"),
+          slot(6, 2, 1, 1, 1, "1:1", "bottom_row_col2"),
+          slot(7, 2, 2, 1, 1, "1:1", "bottom_row_col3"),
+          slot(8, 2, 3, 1, 1, "1:1", "bottom_row_col4"),
+          slot(9, 3, 0, 1, 1, "1:1", "sub_slot_9"),
+          slot(10, 3, 1, 1, 1, "1:1", "sub_slot_10"),
+          slot(11, 3, 2, 1, 2, "1:1", "sub_slot_11")
+        ]),
+        defineLayout("dense-4x3-gallery-grid", 12, "Dense 4×3 Gallery Grid", "3×4", 3, 4, [
+          slot(1, 0, 0, 1, 1, "1:1", "row1_col1"),
+          slot(2, 0, 1, 1, 1, "1:1", "row1_col2"),
+          slot(3, 0, 2, 1, 1, "1:1", "row1_col3"),
+          slot(4, 0, 3, 1, 1, "1:1", "row1_col4"),
+          slot(5, 1, 0, 1, 1, "1:1", "row2_col1"),
+          slot(6, 1, 1, 1, 1, "1:1", "row2_col2"),
+          slot(7, 1, 2, 1, 1, "1:1", "row2_col3"),
+          slot(8, 1, 3, 1, 1, "1:1", "row2_col4"),
+          slot(9, 2, 0, 1, 1, "1:1", "row3_col1"),
+          slot(10, 2, 1, 1, 1, "1:1", "row3_col2"),
+          slot(11, 2, 2, 1, 1, "1:1", "row3_col3"),
+          slot(12, 2, 3, 1, 1, "1:1", "row3_col4")
+        ])
+      ];
+
+      function getLayout() {
+        return layouts.find((layout) => layout.id === state.layout) || layouts.find((layout) => layout.id === "classic-quad-grid");
+      }
+
+      function getSize() {
+        return sizes.find((size) => size.id === state.size) || sizes[0];
+      }
+
+      function setLayout(id) {
+        const layout = layouts.find((item) => item.id === id);
+        if (!layout) return;
+        commit();
+        state.layout = id;
+        gridFilterCount = layout.count;
+        const oldSlots = state.slotPhotos;
+        const oldMargins = state.slotMargins;
+        state.slotPhotos = Array.from({ length: layout.count }, (_, index) =>
+          oldSlots[index] || state.photos[index]?.id || null
+        );
+        state.slotMargins = Array.from({ length: layout.count }, (_, index) =>
+          oldMargins[index] ? { ...oldMargins[index] } : { top: null, right: null, bottom: null, left: null }
+        );
+        state.selectedSlot = Math.min(state.selectedSlot, layout.count - 1);
+        photoCellSelected = false;
+        slotSelected = false;
+        render();
+      }
+
+      function createAutoLayout(photoCount) {
+        if (photoCount === 0) {
+          const emptyLayout = {
+            id: "auto-fit-empty",
+            count: 0,
+            label: "Empty collage",
+            structure: "Empty",
+            gridDimensions: { rows: 1, columns: 1 },
+            slots: [],
+            boxes: []
+          };
+          const existingEmptyLayout = layouts.find((layout) => layout.id === emptyLayout.id);
+          if (existingEmptyLayout) return existingEmptyLayout;
+          layouts.push(emptyLayout);
+          return emptyLayout;
+        }
+        const { width, height } = canvasDimensions();
+        const rows = Math.max(1, Math.min(photoCount, Math.round(Math.sqrt(photoCount / (width / height)))));
+        const baseTilesPerRow = Math.floor(photoCount / rows);
+        const extraTiles = photoCount % rows;
+        const tilesPerRow = Array.from({ length: rows }, (_, row) => baseTilesPerRow + (row < extraTiles ? 1 : 0));
+        const gcd = (a, b) => b ? gcd(b, a % b) : a;
+        const columns = tilesPerRow.reduce((total, count) => total * count / gcd(total, count), 1);
+        const slots = [];
+        let id = 1;
+        tilesPerRow.forEach((count, row) => {
+          const span = columns / count;
+          for (let column = 0; column < count; column++) {
+            slots.push(slot(id, row, column * span, 1, span, `${span * rows}:${columns}`, `auto_${id}`));
+            id++;
+          }
+        });
+        const layoutId = `auto-fit-${photoCount}-${rows}`;
+        let layout = layouts.find((item) => item.id === layoutId);
+        if (!layout) {
+          layout = defineLayout(layoutId, photoCount, `Auto Fit · ${photoCount} Photos`, `${rows}×${columns} Auto Fit`, rows, columns, slots);
+          layouts.push(layout);
+        }
+        return layout;
+      }
+
+      function autoFixCollage() {
+        if (!state.photos.length) {
+          showToast("Add photos before using Auto Fix.");
+          return;
+        }
+        const photoCount = state.photos.length;
+        const preferredLayout = photoCount === 4
+          ? layouts.find((layout) => layout.id === "classic-quad-grid")
+          : layouts.find((layout) => layout.count === photoCount && !layout.id.startsWith("auto-fit-"));
+        const layout = preferredLayout || createAutoLayout(photoCount);
+        commit();
+        state.layout = layout.id;
+        state.slotPhotos = state.photos.map((photo) => photo.id);
+        state.slotMargins = Array.from({ length: photoCount }, () => ({ top: null, right: null, bottom: null, left: null }));
+        state.marginAll = 0;
+        state.selectedSlot = 0;
+        state.selectedItem = null;
+        photoCellSelected = false;
+        slotSelected = false;
+        for (const photo of state.photos) {
+          photo.scale = 1;
+          photo.panX = 0;
+          photo.panY = 0;
+        }
+        gridFilterCount = Math.min(photoCount, 12);
+        fitMode = true;
+        render();
+        showToast(`Auto Fix arranged all ${photoCount} photos in a collage that fits the canvas.`);
+      }
+
+      function setSize(id) {
+        if (!sizes.some((size) => size.id === id)) return;
+        commit();
+        state.size = id;
+        render();
+      }
+
+      function sizeChoicesMarkup() {
+        return `<div class="size-grid">${sizes.map((size) =>
+          `<button class="size-choice${state.size === size.id ? " selected" : ""}" data-size="${size.id}" aria-pressed="${state.size === size.id}"><strong>${size.label}</strong><span>${size.detail}</span></button>`
+        ).join("")}</div>`;
+      }
+
+      function parseCustomDimensions(widthValue, heightValue, unit) {
+        const width = Number(widthValue);
+        const height = Number(heightValue);
+        if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+          return { error: "Enter a width and height greater than zero." };
+        }
+        const multiplier = unit === "cm" ? PIXELS_PER_CM : 1;
+        const dimensions = { width: Math.round(width * multiplier), height: Math.round(height * multiplier) };
+        if (dimensions.width > MAX_CANVAS_EDGE || dimensions.height > MAX_CANVAS_EDGE) {
+          return { error: `Each canvas edge must be ${MAX_CANVAS_EDGE.toLocaleString()} px or less.` };
+        }
+        if (dimensions.width * dimensions.height > MAX_CANVAS_PIXELS) {
+          return { error: "The custom canvas is too large. Reduce its dimensions to keep the export reliable." };
+        }
+        return { dimensions };
+      }
+
+      function customSizeMarkup() {
+        const max = state.customUnit === "cm" ? (MAX_CANVAS_EDGE / PIXELS_PER_CM).toFixed(2) : MAX_CANVAS_EDGE;
+        return `<p class="section-label">Custom size</p>
+          <div class="custom-size-fields">
+            <label class="custom-size-field"><span>Width</span><input id="custom-width" type="number" min="${state.customUnit === "cm" ? "0.01" : "1"}" max="${max}" step="${state.customUnit === "cm" ? "0.01" : "1"}" value="${state.customUnit === "px" ? state.customWidth : (state.customWidth / PIXELS_PER_CM).toFixed(2)}"></label>
+            <span class="custom-size-times" aria-hidden="true">×</span>
+            <label class="custom-size-field"><span>Height</span><input id="custom-height" type="number" min="${state.customUnit === "cm" ? "0.01" : "1"}" max="${max}" step="${state.customUnit === "cm" ? "0.01" : "1"}" value="${state.customUnit === "px" ? state.customHeight : (state.customHeight / PIXELS_PER_CM).toFixed(2)}"></label>
+            <select id="custom-unit" aria-label="Custom size unit">
+              <option value="px"${state.customUnit === "px" ? " selected" : ""}>px</option>
+              <option value="cm"${state.customUnit === "cm" ? " selected" : ""}>cm</option>
+            </select>
+          </div>
+          <p class="custom-size-note">Centimeters export at 300 DPI. Maximum canvas edge: ${MAX_CANVAS_EDGE.toLocaleString()} px.</p>
+          <button class="secondary-button" data-action="apply-custom-size">Apply custom size</button>`;
+      }
+
+      function getBoxes() {
+        return getLayout().boxes;
+      }
+
+      function canvasDimensions() {
+        if (state.size === "custom") {
+          return { width: state.customWidth, height: state.customHeight };
+        }
+        const { width, height } = getSize();
+        return { width, height };
+      }
+
+      function getRects() {
+        const boxes = getBoxes();
+        const { width, height } = canvas;
+        const margin = Math.min(width, height) * state.marginAll / 1000;
+        const usableWidth = width - margin * 2;
+        const usableHeight = height - margin * 2;
+        const marginUnit = Math.min(width, height) / 1000;
+        return boxes.map((box, index) => {
+          const x = margin + box.x * usableWidth;
+          const y = margin + box.y * usableHeight;
+          const w = box.w * usableWidth;
+          const h = box.h * usableHeight;
+          const inset = state.slotMargins[index] || {};
+          const left = (inset.left ?? (box.x > 0 ? state.spacing / 2 : 0)) * marginUnit;
+          const top = (inset.top ?? (box.y > 0 ? state.spacing / 2 : 0)) * marginUnit;
+          const right = (inset.right ?? (box.x + box.w < 1 ? state.spacing / 2 : 0)) * marginUnit;
+          const bottom = (inset.bottom ?? (box.y + box.h < 1 ? state.spacing / 2 : 0)) * marginUnit;
+          return {
+            x: x + left,
+            y: y + top,
+            w: Math.max(1, w - left - right),
+            h: Math.max(1, h - top - bottom)
+          };
+        });
+      }
+
+      function getDefaultPhotoMargin(slotIndex, side) {
+        const box = getBoxes()[slotIndex];
+        if (!box) return 0;
+        const isInternalEdge = {
+          top: box.y > 0,
+          right: box.x + box.w < 1,
+          bottom: box.y + box.h < 1,
+          left: box.x > 0
+        }[side];
+        return isInternalEdge ? state.spacing / 2 : 0;
+      }
+
+      function getPhotoMarginWarningLegacy(slotIndex) {
+        const boxes = getBoxes();
+        const box = boxes[slotIndex];
+        if (!box) return "";
+        const sides = [
+          ["top", "bottom", (other) => Math.abs(other.y + other.h - box.y) < 1e-6 && Math.min(other.x + other.w, box.x + box.w) - Math.max(other.x, box.x) > 1e-6],
+          ["right", "left", (other) => Math.abs(other.x - box.x - box.w) < 1e-6 && Math.min(other.y + other.h, box.y + box.h) - Math.max(other.y, box.y) > 1e-6],
+          ["bottom", "top", (other) => Math.abs(other.y - box.y - box.h) < 1e-6 && Math.min(other.x + other.w, box.x + box.w) - Math.max(other.x, box.x) > 1e-6],
+          ["left", "right", (other) => Math.abs(other.x + other.w - box.x) < 1e-6 && Math.min(other.y + other.h, box.y + box.h) - Math.max(other.x, box.x) > 1e-6]
+        ];
+        for (const [side, oppositeSide, isNeighbor] of sides) {
+          const margins = state.slotMargins[slotIndex] || {};
+          const margin = margins[side] ?? getDefaultPhotoMargin(slotIndex, side);
+          if (margin !== 0) continue;
+          for (let neighborIndex = 0; neighborIndex < boxes.length; neighborIndex++) {
+            if (neighborIndex === slotIndex || !isNeighbor(boxes[neighborIndex]) || !state.slotPhotos[neighborIndex]) continue;
+            const neighborMargins = state.slotMargins[neighborIndex] || {};
+            const neighborMargin = neighborMargins[oppositeSide] ?? getDefaultPhotoMargin(neighborIndex, oppositeSide);
+            if (neighborMargin === 0) return `Warning: This photo is touching another photo on its ${side} side.`;
+            return `At 0%, this photo reaches the cell edge. It will touch an adjacent photo if that photo's matching margin is also 0%.`;
+          }
+        }
+        return "";
+      }
+
+      function getPhotoMarginWarning(slotIndex) {
+        const boxes = getBoxes();
+        const box = boxes[slotIndex];
+        if (!box) return "";
+        const oppositeSides = { top: "bottom", right: "left", bottom: "top", left: "right" };
+        for (const side of Object.keys(oppositeSides)) {
+          const margins = state.slotMargins[slotIndex] || {};
+          if ((margins[side] ?? getDefaultPhotoMargin(slotIndex, side)) !== 0) continue;
+          const neighborIndex = boxes.findIndex((other, index) => {
+            if (index === slotIndex) return false;
+            if (side === "top") return Math.abs(other.y + other.h - box.y) < 1e-6 && Math.min(other.x + other.w, box.x + box.w) > Math.max(other.x, box.x);
+            if (side === "right") return Math.abs(other.x - box.x - box.w) < 1e-6 && Math.min(other.y + other.h, box.y + box.h) > Math.max(other.y, box.y);
+            if (side === "bottom") return Math.abs(other.y - box.y - box.h) < 1e-6 && Math.min(other.x + other.w, box.x + box.w) > Math.max(other.x, box.x);
+            if (side === "left") return Math.abs(other.x + other.w - box.x) < 1e-6 && Math.min(other.y + other.h, box.y + box.h) > Math.max(other.y, box.y);
+            return false;
+          });
+          if (neighborIndex < 0 || !state.slotPhotos[neighborIndex]) continue;
+          const oppositeSide = oppositeSides[side];
+          const neighborMargins = state.slotMargins[neighborIndex] || {};
+          if ((neighborMargins[oppositeSide] ?? getDefaultPhotoMargin(neighborIndex, oppositeSide)) === 0) {
+            return `Warning: This photo is touching another photo on its ${side} side.`;
+          }
+          return `At 0%, this photo reaches the cell edge. It will touch an adjacent photo if that photo's matching margin is also 0%.`;
+        }
+        return "";
+      }
+
+      function roundRect(x, y, width, height, radius) {
+        const r = Math.max(0, Math.min(radius, width / 2, height / 2));
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.arcTo(x + width, y, x + width, y + height, r);
+        ctx.arcTo(x + width, y + height, x, y + height, r);
+        ctx.arcTo(x, y + height, x, y, r);
+        ctx.arcTo(x, y, x + width, y, r);
+        ctx.closePath();
+      }
+
+      function drawPhoto(photo, rect, slotIndex, exporting) {
+        if (!photo || !photo.image?.naturalWidth) return;
+        const radius = Math.min(state.corner * canvas.width / 800, rect.w / 2, rect.h / 2);
+        roundRect(rect.x, rect.y, rect.w, rect.h, radius);
+        ctx.save();
+        ctx.clip();
+        ctx.fillStyle = "#eeeeee";
+        ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+        const sourceWidth = photo.image.naturalWidth;
+        const sourceHeight = photo.image.naturalHeight;
+        const sourceAspect = sourceWidth / sourceHeight;
+        const targetAspect = rect.w / rect.h;
+        const scale = Math.max(1, photo.scale || 1);
+        let cropWidth;
+        let cropHeight;
+        if (sourceAspect > targetAspect) {
+          cropHeight = sourceHeight / scale;
+          cropWidth = cropHeight * targetAspect;
+        } else {
+          cropWidth = sourceWidth / scale;
+          cropHeight = cropWidth / targetAspect;
+        }
+        const maxX = sourceWidth - cropWidth;
+        const maxY = sourceHeight - cropHeight;
+        const sx = Math.max(0, Math.min(maxX, maxX / 2 + (photo.panX || 0) * maxX));
+        const sy = Math.max(0, Math.min(maxY, maxY / 2 + (photo.panY || 0) * maxY));
+        ctx.drawImage(photo.image, sx, sy, cropWidth, cropHeight, rect.x, rect.y, rect.w, rect.h);
+        ctx.restore();
+        if (!exporting && photoCellSelected && state.selectedSlot === slotIndex) {
+          ctx.save();
+          roundRect(rect.x + 2, rect.y + 2, rect.w - 4, rect.h - 4, Math.max(0, radius - 2));
+          ctx.strokeStyle = "#7c3aed";
+          ctx.lineWidth = Math.max(5, canvas.width * .005);
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+
+      function drawItems(exporting) {
+        for (const item of state.items) {
+          const x = item.x * canvas.width;
+          const y = item.y * canvas.height;
+          const selected = !exporting && item.id === state.selectedItem;
+          ctx.save();
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          if (item.type === "text") {
+            const fontSize = item.size * canvas.width / 800;
+            ctx.font = `700 ${fontSize}px system-ui, sans-serif`;
+            ctx.lineWidth = Math.max(2, fontSize * .12);
+            ctx.strokeStyle = "rgba(255,255,255,.8)";
+            ctx.strokeText(item.value, x, y, canvas.width * .8);
+            ctx.fillStyle = item.color;
+            ctx.fillText(item.value, x, y, canvas.width * .8);
+          } else {
+            ctx.font = `${item.size * canvas.width / 800}px system-ui, sans-serif`;
+            ctx.fillText(item.value, x, y);
+          }
+          if (selected) {
+            ctx.setLineDash([canvas.width * .006, canvas.width * .004]);
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = Math.max(2, canvas.width * .002);
+            ctx.strokeRect(x - canvas.width * .12, y - canvas.width * .045, canvas.width * .24, canvas.width * .09);
+          }
+          ctx.restore();
+        }
+      }
+
+      function drawFrame() {
+        const frame = frames.find((item) => item.id === state.frame);
+        if (!frame?.width) return;
+        const width = frame.width * canvas.width / 800;
+        ctx.save();
+        ctx.strokeStyle = frame.color;
+        ctx.lineWidth = width;
+        ctx.strokeRect(width / 2, width / 2, canvas.width - width, canvas.height - width);
+        ctx.restore();
+      }
+
+      function draw(exporting = false) {
+        const dimensions = canvasDimensions();
+        if (canvas.width !== dimensions.width || canvas.height !== dimensions.height) {
+          canvas.width = dimensions.width;
+          canvas.height = dimensions.height;
+        }
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = state.background;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        const rects = getRects();
+        rects.forEach((rect, index) => {
+          const photo = state.photos.find((item) => item.id === state.slotPhotos[index]);
+          if (photo) {
+            drawPhoto(photo, rect, index, exporting);
+          } else {
+            if (exporting) return;
+            const radius = Math.min(state.corner * canvas.width / 800, rect.w / 2, rect.h / 2);
+            roundRect(rect.x, rect.y, rect.w, rect.h, radius);
+            ctx.fillStyle = "#f4f2f2";
+            ctx.fill();
+            ctx.save();
+            ctx.setLineDash([canvas.width * .008, canvas.width * .006]);
+            ctx.strokeStyle = "#dedada";
+            ctx.lineWidth = Math.max(2, canvas.width * .002);
+            ctx.stroke();
+            ctx.restore();
+            if (slotSelected && state.selectedSlot === index) {
+              ctx.save();
+              roundRect(rect.x + 2, rect.y + 2, rect.w - 4, rect.h - 4, Math.max(0, radius - 2));
+              ctx.strokeStyle = "#7c3aed";
+              ctx.lineWidth = Math.max(5, canvas.width * .005);
+              ctx.stroke();
+              ctx.restore();
+            }
+          }
+        });
+        drawItems(exporting);
+        drawFrame();
+        $("#download").disabled = state.photos.length === 0;
+      }
+
+      function fitCanvas() {
+        const { width, height } = canvasDimensions();
+        const availableWidth = Math.max(200, workspace.clientWidth - (window.innerWidth <= 700 ? 34 : 110));
+        const availableHeight = Math.max(200, workspace.clientHeight - (window.innerWidth <= 700 ? 50 : 100));
+        fitZoom = Math.min(availableWidth / width, availableHeight / height, 1);
+        if (fitMode) zoom = fitZoom;
+        canvas.style.width = `${Math.round(width * zoom)}px`;
+        canvas.style.height = `${Math.round(height * zoom)}px`;
+        $("#zoom-value").textContent = `${Math.round(zoom * 100)}%`;
+      }
+
+      function render() {
+        draw();
+        const hasPhotos = state.photos.length > 0;
+        dropZone.hidden = hasPhotos;
+        canvasWrap.classList.toggle("visible", hasPhotos);
+        canvas.setAttribute("aria-label", `${getLayout().label} collage. Select a photo cell and drag to reposition its image.`);
+        fitCanvas();
+        if (!panel.hidden) renderPanel(panel.dataset.activePanel);
+      }
+
+      function layoutIcon(layout) {
+        const tiles = layout.boxes.map((box) =>
+          `<i style="left:${box.x * 100}%;top:${box.y * 100}%;width:${box.w * 100}%;height:${box.h * 100}%"></i>`
+        ).join("");
+        return `<span class="layout-icon" aria-hidden="true">${tiles}</span>`;
+      }
+
+      function colorButtons(selected) {
+        return `<div class="color-grid">${colors.map((color) =>
+          `<button class="color-choice${selected === color ? " selected" : ""}" data-color="${color}" style="background:${color}" aria-label="Background ${color}" title="${color}"></button>`
+        ).join("")}</div>`;
+      }
+
+      function renderPanel(name) {
+        if (!name) return;
+        const title = {
+          templates: "Templates", grids: "Grids", size: "Canvas size", photo: "Photos",
+          text: "Add text", sticker: "Stickers", background: "Background", frames: "Frames"
+        }[name] || "Editor";
+        let content = "";
+        if (name === "grids") {
+          content += `<p class="panel-copy">Choose how many photos to arrange, then pick a grid. Browse 1–12 photo layouts.</p>`;
+          content += `<button class="secondary-button" data-action="auto-fix"${state.photos.length ? "" : " disabled"}>Auto Fix · Arrange all ${state.photos.length} photos</button>`;
+          content += `<div class="grid-counts" aria-label="Number of photos">${photoCounts.map((count) => {
+            const selected = gridFilterCount === count;
+            return `<button class="grid-count${selected ? " selected" : ""}" data-grid-count="${count}" aria-label="${count} ${count === 1 ? "photo" : "photos"}" aria-pressed="${selected}">${count}</button>`;
+          }).join("")}</div>`;
+          const matchingLayouts = layouts.filter((layout) => layout.count === gridFilterCount);
+          content += matchingLayouts.length
+            ? `<div class="choice-grid">${matchingLayouts.map((layout) => {
+              const details = layout.slots.map((item) => `${item.role}: ${item.aspectRatio}`).join(", ");
+              return `<button class="choice${state.layout === layout.id ? " selected" : ""}" data-layout="${layout.id}" aria-label="${layout.count} photos, ${escapeHtml(layout.label)}" aria-pressed="${state.layout === layout.id}" title="${escapeHtml(`${layout.structure} · ${details}`)}">${layoutIcon(layout)}<span class="layout-label">${escapeHtml(layout.label)}</span></button>`;
+            }).join("")}</div>`
+            : '<div class="empty-note">No 3-photo grid is defined in this layout set. The Featured Left Split Stack uses all four listed slots.</div>';
+          content += `<p class="section-label">Grid spacing</p>
+            <label class="control-label" for="margin-all">Outer margin (all sides) <span id="margin-all-value">${(state.marginAll / 10).toFixed(1)}%</span></label>
+            <input id="margin-all" type="range" min="0" max="120" value="${state.marginAll}">
+            <p class="custom-size-note">Set the outer margin to 0% for photos to reach the canvas edge. Select a photo to adjust its individual sides.</p>
+            <label class="control-label" for="spacing">Photo spacing <span id="spacing-value">${state.spacing}</span></label>
+            <input id="spacing" type="range" min="0" max="40" value="${state.spacing}">
+            <label class="control-label" for="corner">Rounded corners <span id="corner-value">${state.corner}</span></label>
+            <input id="corner" type="range" min="0" max="36" value="${state.corner}">`;
+        } else if (name === "templates") {
+          content = '<p class="panel-copy">Choose a canvas format for your collage. Grid layouts are available under Grids.</p>';
+          content += `<p class="section-label">Canvas format</p>${sizeChoicesMarkup()}${customSizeMarkup()}`;
+        } else if (name === "size") {
+          content = `<p class="panel-copy">Pick the shape that fits where you want to share or print your collage.</p>${sizeChoicesMarkup()}${customSizeMarkup()}`;
+        } else if (name === "background") {
+          content = `<p class="panel-copy">Choose a color for the collage and the spaces between photos.</p>${colorButtons(state.background)}
+            <label class="control-label" for="custom-background">Custom color</label><input id="custom-background" type="color" value="${state.background}">`;
+        } else if (name === "frames") {
+          content = `<p class="panel-copy">Finish your collage with a simple border.</p><div class="frame-grid">${frames.map((frame) =>
+            `<button class="frame-choice${state.frame === frame.id ? " selected" : ""}" data-frame="${frame.id}">${frame.label}${frame.color ? `<span style="display:inline-block;width:15px;height:15px;margin-left:10px;vertical-align:middle;border:1px solid #ddd;border-radius:4px;background:${frame.color}"></span>` : ""}</button>`
+          ).join("")}</div>`;
+        } else if (name === "photo") {
+          const selectedPhoto = state.photos.find((photo) => photo.id === state.slotPhotos[state.selectedSlot]);
+          const librarySelectedPhoto = state.photos.find((photo) => photo.id === selectedLibraryPhotoId);
+          const slotMargins = state.slotMargins[state.selectedSlot] || {};
+          const usedPhotoIds = new Set(state.slotPhotos.filter(Boolean));
+          const usedCount = state.photos.filter((photo) => usedPhotoIds.has(photo.id)).length;
+          const unusedCount = state.photos.length - usedCount;
+          const visiblePhotos = state.photos.filter((photo) =>
+            photoFilter === "used" ? usedPhotoIds.has(photo.id) :
+              photoFilter === "unused" ? !usedPhotoIds.has(photo.id) : true
+          );
+          content = `<p class="panel-copy">${state.photos.length ? `Select a photo to place it in cell ${state.selectedSlot + 1}, or drag a photo inside its cell to adjust the crop.` : "Add photos to start building your collage."}</p>
+            <button class="upload-small" data-action="upload">＋ Add photos</button>`;
+          if (slotSelected) {
+            content += `<p class="section-label">${selectedPhoto && photoCellSelected
+              ? `Selected: cell ${state.selectedSlot + 1} · ${escapeHtml(selectedPhoto.name)}`
+              : `Selected photo holder: cell ${state.selectedSlot + 1}${selectedPhoto ? "" : " · empty"}`}</p>`;
+          }
+          if (librarySelectedPhoto && !usedPhotoIds.has(librarySelectedPhoto.id)) {
+            content += `<p class="section-label">Selected to add: ${escapeHtml(librarySelectedPhoto.name)}</p>
+              <button class="secondary-button" data-action="place-library-photo">Add selected photo to canvas</button>
+              <p class="custom-size-note">Choose a photo holder on the canvas first, or it will be added to the next empty holder.</p>`;
+          }
+          if (selectedPhoto && photoCellSelected) {
+            content += `
+              <label class="control-label" for="photo-zoom">Selected photo zoom <span id="photo-zoom-value">${Math.round(selectedPhoto.scale * 100)}%</span></label>
+              <input id="photo-zoom" type="range" min="100" max="250" value="${Math.round(selectedPhoto.scale * 100)}">
+              <p class="section-label">Selected photo margins</p>
+              <p class="custom-size-note">Set a side to 0% to reach the edge of its cell. Adjacent photos may touch.</p>
+              <p id="photo-margin-warning" class="empty-note"${getPhotoMarginWarning(state.selectedSlot) ? "" : " hidden"}>${escapeHtml(getPhotoMarginWarning(state.selectedSlot))}</p>
+                ${[
+                  ["top", "Top"],
+                  ["right", "Right"],
+                  ["bottom", "Bottom"],
+                  ["left", "Left"]
+                ].map(([side, label]) => {
+                  const value = slotMargins[side] ?? getDefaultPhotoMargin(state.selectedSlot, side);
+                  return `<label class="control-label" for="photo-margin-${side}">${label} margin <span id="photo-margin-${side}-value">${(value / 10).toFixed(1)}%</span></label>
+                    <input id="photo-margin-${side}" type="range" min="0" max="120" value="${value}">`;
+                }).join("")}
+              <button class="secondary-button" data-action="remove-selected">Remove photo from canvas</button>`;
+          }
+          if (slotSelected) {
+            content += `<button class="secondary-button" data-action="delete-holder">Delete photo holder</button>
+              <p class="custom-size-note">Deleting a holder reflows the remaining cells. Its photo, if any, stays in Your photos.</p>`;
+          }
+          if (state.photos.length) {
+            content += `<p class="section-label">Your photos (${state.photos.length})</p>
+              <div class="photo-filters" aria-label="Filter photos">
+                <button class="photo-filter${photoFilter === "all" ? " selected" : ""}" data-photo-filter="all" aria-pressed="${photoFilter === "all"}">All · ${state.photos.length}</button>
+                <button class="photo-filter${photoFilter === "used" ? " selected" : ""}" data-photo-filter="used" aria-pressed="${photoFilter === "used"}">On canvas · ${usedCount}</button>
+                <button class="photo-filter${photoFilter === "unused" ? " selected" : ""}" data-photo-filter="unused" aria-pressed="${photoFilter === "unused"}">Unused · ${unusedCount}</button>
+              </div>
+              ${visiblePhotos.length ? `<div class="photo-list">${visiblePhotos.map((photo) => {
+              const isSelected = slotSelected && photoCellSelected && state.slotPhotos[state.selectedSlot] === photo.id;
+              const isLibrarySelected = selectedLibraryPhotoId === photo.id && !usedPhotoIds.has(photo.id);
+              const assignedIndex = state.slotPhotos.indexOf(photo.id);
+              return `<div class="photo-row${isSelected ? " selected" : ""}${isLibrarySelected ? " library-selected" : ""}">
+                <img class="photo-thumb" src="${photo.url}" alt="">
+                <button class="photo-pick" data-photo="${photo.id}" title="${assignedIndex >= 0 ? `Select photo in cell ${assignedIndex + 1}` : "Select this photo to add it to the canvas"}"><strong>${escapeHtml(photo.name)}</strong><span>${assignedIndex >= 0 ? `Used · cell ${assignedIndex + 1}` : isLibrarySelected ? "Selected · click Add selected photo to canvas" : "Unused · select to add"}</span></button>
+                <button class="remove-photo" data-remove="${photo.id}" aria-label="Remove ${escapeHtml(photo.name)}">×</button>
+              </div>`;
+            }).join("")}</div>` : `<div class="empty-note">No ${photoFilter === "used" ? "photos are on the canvas" : "unused photos"}.</div>`}`;
+          } else {
+            content += '<div class="empty-note" style="margin-top:12px">Choose images from your device. They stay in this browser and are not sent to a server.</div>';
+          }
+        } else if (name === "text") {
+          content = `<p class="panel-copy">Add a caption to your collage. Drag it on the canvas to reposition it.</p>
+            <label class="control-label" for="text-value">Your text</label>
+            <textarea id="text-value" maxlength="80" placeholder="Type something memorable…"></textarea>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+              <div><label class="control-label" for="text-color">Text color</label><input id="text-color" type="color" value="#222222"></div>
+              <div style="flex:1"><label class="control-label" for="text-size">Text size</label><input id="text-size" type="range" min="20" max="84" value="44"></div>
+            </div>
+            <button class="secondary-button" data-action="add-text">Add text to collage</button>
+            ${state.items.some((item) => item.type === "text") ? `<p class="section-label">Text layers</p><div class="photo-list">${state.items.filter((item) => item.type === "text").map((item) =>
+              `<div class="photo-row${state.selectedItem === item.id ? " selected" : ""}"><button class="photo-pick" data-item="${item.id}"><strong>${escapeHtml(item.value)}</strong><span>Click to select</span></button><button class="remove-photo" data-remove-item="${item.id}" aria-label="Remove text">×</button></div>`
+            ).join("")}</div>` : ""}`;
+        } else if (name === "sticker") {
+          content = `<p class="panel-copy">Add a little personality. Drag stickers on the canvas to move them.</p><div class="sticker-grid">${stickers.map((sticker) =>
+            `<button class="sticker-choice" data-sticker="${sticker}" aria-label="Add ${sticker}">${sticker}</button>`
+          ).join("")}</div>`;
+        }
+        panel.dataset.activePanel = name;
+        panel.innerHTML = `<div class="panel-head"><h2>${title}</h2><button class="close-panel" aria-label="Close panel">×</button></div>${content}`;
+        panel.hidden = false;
+        panel.querySelector(".grid-count.selected")?.scrollIntoView({ block: "nearest", inline: "center" });
+        document.querySelectorAll(".tool").forEach((tool) => tool.classList.toggle("active", tool.dataset.panel === name));
+      }
+
+      function openPanel(name) {
+        if (!panel.hidden && panel.dataset.activePanel === name) {
+          panel.hidden = true;
+          document.querySelectorAll(".tool").forEach((tool) => tool.classList.remove("active"));
+          return;
+        }
+        renderPanel(name);
+      }
+
+      function openFiles() {
+        fileInput.value = "";
+        fileInput.click();
+      }
+
+      function loadImage(file) {
+        return new Promise((resolve, reject) => {
+          const url = URL.createObjectURL(file);
+          const image = new Image();
+          image.onload = () => resolve({
+            id: `photo-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+            name: file.name,
+            url,
+            image,
+            scale: 1,
+            panX: 0,
+            panY: 0
+          });
+          image.onerror = () => {
+            URL.revokeObjectURL(url);
+            reject(new Error(`${file.name} could not be opened as an image. Try a JPG, PNG, GIF, or WebP file.`));
+          };
+          image.src = url;
+        });
+      }
+
+      async function addFiles(fileList) {
+        const files = Array.from(fileList || []);
+        if (!files.length) return;
+        const remaining = MAX_PHOTOS - state.photos.length - pendingPhotoCount;
+        if (remaining <= 0) {
+          showToast(`You can add up to ${MAX_PHOTOS} photos to one collage.`);
+          return;
+        }
+        const usable = files.filter((file) => file.type.startsWith("image/") || /\.(jpe?g|png|gif|webp)$/i.test(file.name));
+        if (usable.length !== files.length) showToast("Some files were skipped. Use JPG, PNG, GIF, or WebP images.");
+        if (usable.length > remaining) showToast(`Only ${remaining} more photo${remaining === 1 ? "" : "s"} can be added.`);
+        const selectedFiles = usable.slice(0, remaining);
+        pendingPhotoCount += selectedFiles.length;
+        const loaded = await Promise.allSettled(selectedFiles.map(loadImage));
+        pendingPhotoCount -= selectedFiles.length;
+        const photos = loaded.filter((result) => result.status === "fulfilled").map((result) => result.value);
+        const failures = loaded.filter((result) => result.status === "rejected");
+        if (failures.length) showToast(failures[0].reason.message);
+        if (!photos.length) {
+          if (!failures.length && usable.length) showToast("No photos could be added.");
+          return;
+        }
+        commit();
+        const firstPhoto = state.photos.length === 0;
+        state.photos.push(...photos);
+        if (firstPhoto) {
+          state.slotPhotos = Array.from({ length: getLayout().count }, (_, index) => state.photos[index]?.id || null);
+          state.selectedSlot = 0;
+        } else {
+          for (const photo of photos) {
+            const emptySlot = state.slotPhotos.findIndex((id) => !id);
+            if (emptySlot < 0) break;
+            state.slotPhotos[emptySlot] = photo.id;
+          }
+        }
+        render();
+        if (!failures.length) showToast(`${photos.length} photo${photos.length === 1 ? "" : "s"} added. Drag inside a cell to adjust the crop.`);
+      }
+
+      function removePhoto(id) {
+        const photo = state.photos.find((item) => item.id === id);
+        if (!photo) return;
+        commit();
+        state.photos = state.photos.filter((item) => item.id !== id);
+        if (selectedLibraryPhotoId === id) selectedLibraryPhotoId = null;
+        state.slotPhotos = state.slotPhotos.map((photoId) => photoId === id ? null : photoId);
+        if (state.slotPhotos[state.selectedSlot] === null) {
+          photoCellSelected = false;
+        }
+        render();
+      }
+
+      function removePhotoFromSelectedSlot() {
+        if (!state.slotPhotos[state.selectedSlot]) return;
+        commit();
+        state.slotPhotos[state.selectedSlot] = null;
+        photoCellSelected = false;
+        slotSelected = true;
+        render();
+        showToast("Photo removed from the canvas. Its holder is still there.");
+      }
+
+      function placeSelectedLibraryPhoto() {
+        const photo = state.photos.find((item) => item.id === selectedLibraryPhotoId);
+        if (!photo || state.slotPhotos.includes(photo.id)) {
+          selectedLibraryPhotoId = null;
+          renderPanel("photo");
+          return;
+        }
+        let targetSlot = slotSelected && !state.slotPhotos[state.selectedSlot]
+          ? state.selectedSlot
+          : state.slotPhotos.findIndex((photoId) => !photoId);
+        commit();
+        if (targetSlot < 0) {
+          const nextLayout = createAutoLayout(state.slotPhotos.length + 1);
+          state.layout = nextLayout.id;
+          state.slotPhotos.push(null);
+          state.slotMargins.push({ top: null, right: null, bottom: null, left: null });
+          targetSlot = state.slotPhotos.length - 1;
+        }
+        state.slotPhotos[targetSlot] = photo.id;
+        state.selectedSlot = targetSlot;
+        photoCellSelected = true;
+        slotSelected = true;
+        selectedLibraryPhotoId = null;
+        gridFilterCount = Math.min(state.slotPhotos.length, 12);
+        render();
+        showToast(`${photo.name} added to cell ${targetSlot + 1}.`);
+      }
+
+      function deleteSelectedHolder() {
+        if (state.slotPhotos.length === 0 || !slotSelected) {
+          showToast("Select a photo holder on the canvas first.");
+          return;
+        }
+        commit();
+        const [removedPhoto] = state.slotPhotos.splice(state.selectedSlot, 1);
+        state.slotMargins.splice(state.selectedSlot, 1);
+        const layout = createAutoLayout(state.slotPhotos.length);
+        state.layout = layout.id;
+        state.selectedSlot = state.slotPhotos.length ? Math.min(state.selectedSlot, state.slotPhotos.length - 1) : 0;
+        slotSelected = state.slotPhotos.length > 0;
+        photoCellSelected = Boolean(state.slotPhotos[state.selectedSlot] && state.photos.find((photo) => photo.id === state.slotPhotos[state.selectedSlot]));
+        render();
+        showToast(removedPhoto
+          ? "Photo holder deleted. Its photo is now unused and remains in Your photos."
+          : "Photo holder deleted. The remaining cells were rearranged.");
+      }
+
+      function addText() {
+        const value = $("#text-value")?.value.trim();
+        if (!value) {
+          showToast("Type a caption first.");
+          return;
+        }
+        commit();
+        const item = {
+          id: `item-${Date.now()}`,
+          type: "text",
+          value,
+          x: .5,
+          y: .5,
+          size: Number($("#text-size").value),
+          color: $("#text-color").value
+        };
+        state.items.push(item);
+        state.selectedItem = item.id;
+        render();
+      }
+
+      function addSticker(value) {
+        commit();
+        const item = { id: `item-${Date.now()}-${Math.random()}`, type: "sticker", value, x: .5, y: .5, size: 72, color: "#222222" };
+        state.items.push(item);
+        state.selectedItem = item.id;
+        render();
+      }
+
+      function applyCustomSize() {
+        const parsed = parseCustomDimensions($("#custom-width")?.value, $("#custom-height")?.value, $("#custom-unit")?.value);
+        if (parsed.error) {
+          showToast(parsed.error);
+          return;
+        }
+        commit();
+        state.customWidth = parsed.dimensions.width;
+        state.customHeight = parsed.dimensions.height;
+        state.customUnit = $("#custom-unit").value;
+        state.size = "custom";
+        render();
+        showToast(`Custom canvas set to ${state.customWidth} × ${state.customHeight} px.`);
+      }
+
+      function handleCustomUnitChange() {
+        const unit = $("#custom-unit")?.value;
+        if (unit === state.customUnit) return;
+        const parsed = parseCustomDimensions($("#custom-width")?.value, $("#custom-height")?.value, state.customUnit);
+        if (parsed.error) {
+          showToast(parsed.error);
+          renderPanel(panel.dataset.activePanel);
+          return;
+        }
+        state.customWidth = parsed.dimensions.width;
+        state.customHeight = parsed.dimensions.height;
+        state.customUnit = unit;
+        renderPanel(panel.dataset.activePanel);
+      }
+
+      function handlePanelClick(event) {
+        const target = event.target.closest("button");
+        if (!target) return;
+        if (target.classList.contains("close-panel")) {
+          panel.hidden = true;
+          document.querySelectorAll(".tool").forEach((tool) => tool.classList.remove("active"));
+        } else if (target.dataset.layout) {
+          setLayout(target.dataset.layout);
+        } else if (target.dataset.gridCount) {
+          gridFilterCount = Number(target.dataset.gridCount);
+          renderPanel(panel.dataset.activePanel);
+        } else if (target.dataset.photoFilter) {
+          photoFilter = target.dataset.photoFilter;
+          renderPanel(panel.dataset.activePanel);
+        } else if (target.dataset.size) {
+          setSize(target.dataset.size);
+        } else if (target.dataset.action === "apply-custom-size") {
+          applyCustomSize();
+        } else if (target.dataset.action === "auto-fix") {
+          autoFixCollage();
+        } else if (target.dataset.color) {
+          commit();
+          state.background = target.dataset.color;
+          render();
+        } else if (target.dataset.frame) {
+          commit();
+          state.frame = target.dataset.frame;
+          render();
+        } else if (target.dataset.action === "upload") {
+          openFiles();
+        } else if (target.dataset.action === "remove-selected") {
+          removePhotoFromSelectedSlot();
+        } else if (target.dataset.action === "delete-holder") {
+          deleteSelectedHolder();
+        } else if (target.dataset.action === "place-library-photo") {
+          placeSelectedLibraryPhoto();
+        } else if (target.dataset.photo) {
+          const photo = state.photos.find((item) => item.id === target.dataset.photo);
+          if (!photo) return;
+          const usedSlot = state.slotPhotos.indexOf(photo.id);
+          if (usedSlot >= 0) {
+            state.selectedSlot = usedSlot;
+            photoCellSelected = true;
+            slotSelected = true;
+            selectedLibraryPhotoId = null;
+            render();
+            return;
+          }
+          selectedLibraryPhotoId = photo.id;
+          renderPanel("photo");
+        } else if (target.dataset.remove) {
+          removePhoto(target.dataset.remove);
+        } else if (target.dataset.sticker) {
+          addSticker(target.dataset.sticker);
+        } else if (target.dataset.action === "add-text") {
+          addText();
+        } else if (target.dataset.item) {
+          state.selectedItem = target.dataset.item;
+          render();
+        } else if (target.dataset.removeItem) {
+          commit();
+          state.items = state.items.filter((item) => item.id !== target.dataset.removeItem);
+          state.selectedItem = null;
+          render();
+        }
+      }
+
+      function handlePanelInput(event) {
+        const input = event.target;
+        if (input.id === "custom-background") {
+          state.background = input.value;
+          panel.querySelectorAll(".color-choice").forEach((button) => {
+            button.classList.toggle("selected", button.dataset.color === state.background);
+          });
+          draw();
+        } else if (input.id === "margin-all") {
+          state.marginAll = Number(input.value);
+          $("#margin-all-value").textContent = `${(state.marginAll / 10).toFixed(1)}%`;
+          draw();
+        } else if (input.id.startsWith("photo-margin-")) {
+          const side = input.id.slice("photo-margin-".length);
+          const value = Number(input.value);
+          if (!["top", "right", "bottom", "left"].includes(side)) return;
+          if (!state.slotMargins[state.selectedSlot]) {
+            state.slotMargins[state.selectedSlot] = { top: null, right: null, bottom: null, left: null };
+          }
+          state.slotMargins[state.selectedSlot][side] = value;
+          $(`#photo-margin-${side}-value`).textContent = `${(value / 10).toFixed(1)}%`;
+          const warning = getPhotoMarginWarning(state.selectedSlot);
+          const warningElement = $("#photo-margin-warning");
+          warningElement.textContent = warning;
+          warningElement.hidden = !warning;
+          if (warning) showToast(warning);
+          draw();
+        } else if (input.id === "spacing") {
+          state.spacing = Number(input.value);
+          $("#spacing-value").textContent = input.value;
+          draw();
+        } else if (input.id === "corner") {
+          state.corner = Number(input.value);
+          $("#corner-value").textContent = input.value;
+          draw();
+        } else if (input.id === "photo-zoom") {
+          const photo = state.photos.find((item) => item.id === state.slotPhotos[state.selectedSlot]);
+          if (photo) {
+            photo.scale = Number(input.value) / 100;
+            $("#photo-zoom-value").textContent = `${input.value}%`;
+            draw();
+          }
+        }
+      }
+
+      function normalizedPoint(event) {
+        const bounds = canvas.getBoundingClientRect();
+        return {
+          x: (event.clientX - bounds.left) * canvas.width / bounds.width,
+          y: (event.clientY - bounds.top) * canvas.height / bounds.height
+        };
+      }
+
+      function findItemAt(point) {
+        for (let index = state.items.length - 1; index >= 0; index--) {
+          const item = state.items[index];
+          const dx = Math.abs(point.x - item.x * canvas.width);
+          const dy = Math.abs(point.y - item.y * canvas.height);
+          if (dx < canvas.width * .14 && dy < canvas.width * .06) return item;
+        }
+        return null;
+      }
+
+      canvas.addEventListener("pointerdown", (event) => {
+        if (!state.photos.length) return;
+        const point = normalizedPoint(event);
+        const item = findItemAt(point);
+        if (item) {
+          commit();
+          state.selectedItem = item.id;
+          photoCellSelected = false;
+          slotSelected = false;
+          pointerDrag = { type: "item", id: item.id, startX: point.x, startY: point.y, x: item.x, y: item.y };
+        } else {
+          state.selectedItem = null;
+          const rects = getRects();
+          const slotIndex = rects.findIndex((rect) =>
+            point.x >= rect.x && point.x <= rect.x + rect.w && point.y >= rect.y && point.y <= rect.y + rect.h
+          );
+          if (slotIndex < 0) {
+            state.selectedItem = null;
+            photoCellSelected = false;
+            slotSelected = false;
+            canvas.classList.remove("dragging");
+            render();
+            return;
+          }
+          const photo = state.photos.find((entry) => entry.id === state.slotPhotos[slotIndex]);
+          if (photo) commit();
+          state.selectedSlot = slotIndex;
+          photoCellSelected = Boolean(photo);
+          slotSelected = true;
+          if (photo) pointerDrag = { type: "photo", photoId: photo.id, startX: point.x, startY: point.y, panX: photo.panX, panY: photo.panY, rect: rects[slotIndex] };
+        }
+        canvas.setPointerCapture(event.pointerId);
+        canvas.classList.add("dragging");
+        render();
+        if (slotSelected) renderPanel("photo");
+      });
+
+      canvas.addEventListener("pointermove", (event) => {
+        if (!pointerDrag) return;
+        const point = normalizedPoint(event);
+        if (pointerDrag.type === "item") {
+          const item = state.items.find((entry) => entry.id === pointerDrag.id);
+          if (item) {
+            item.x = Math.max(.05, Math.min(.95, pointerDrag.x + (point.x - pointerDrag.startX) / canvas.width));
+            item.y = Math.max(.05, Math.min(.95, pointerDrag.y + (point.y - pointerDrag.startY) / canvas.height));
+          }
+        } else {
+          const photo = state.photos.find((entry) => entry.id === pointerDrag.photoId);
+          if (photo) {
+            photo.panX = Math.max(-.5, Math.min(.5, pointerDrag.panX - (point.x - pointerDrag.startX) / pointerDrag.rect.w));
+            photo.panY = Math.max(-.5, Math.min(.5, pointerDrag.panY - (point.y - pointerDrag.startY) / pointerDrag.rect.h));
+          }
+        }
+        draw();
+      });
+
+      function endCanvasDrag() {
+        if (pointerDrag) {
+          pointerDrag = null;
+          canvas.classList.remove("dragging");
+          render();
+          if (!panel.hidden && panel.dataset.activePanel === "photo") renderPanel("photo");
+        }
+      }
+      canvas.addEventListener("pointerup", endCanvasDrag);
+      canvas.addEventListener("pointercancel", endCanvasDrag);
+      document.addEventListener("pointerdown", (event) => {
+        if (!slotSelected || canvas.contains(event.target) || panel.contains(event.target)) return;
+        photoCellSelected = false;
+        slotSelected = false;
+        state.selectedItem = null;
+        draw();
+        if (!panel.hidden && panel.dataset.activePanel === "photo") renderPanel("photo");
+      });
+
+      document.querySelectorAll(".tool").forEach((tool) => tool.addEventListener("click", () => openPanel(tool.dataset.panel)));
+      panel.addEventListener("click", handlePanelClick);
+      panel.addEventListener("input", handlePanelInput);
+      panel.addEventListener("change", (event) => {
+        if (event.target.id === "custom-unit") handleCustomUnitChange();
+      });
+      panel.addEventListener("pointerdown", (event) => {
+        if (event.target.matches('input[type="range"], input[type="color"]')) commit();
+      });
+      panel.addEventListener("keydown", (event) => {
+        if (event.target.matches('input[type="range"], input[type="color"]') && ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"].includes(event.key)) commit();
+      });
+      $("#upload-main").addEventListener("click", openFiles);
+      fileInput.addEventListener("change", (event) => addFiles(event.target.files));
+      $("#undo").addEventListener("click", undo);
+      $("#redo").addEventListener("click", redo);
+      $("#download").addEventListener("click", () => {
+        if (!state.photos.length) return;
+        draw(true);
+        canvas.toBlob((blob) => {
+          draw();
+          if (!blob) {
+            showToast("The collage could not be exported. Try again or use fewer/lower-resolution photos.");
+            return;
+          }
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = "my-collage.png";
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }, "image/png");
+      });
+
+      $("#zoom-in").addEventListener("click", () => {
+        fitMode = false;
+        zoom = Math.min(2, zoom + .1);
+        fitCanvas();
+      });
+      $("#zoom-out").addEventListener("click", () => {
+        fitMode = false;
+        zoom = Math.max(.25, zoom - .1);
+        fitCanvas();
+      });
+      $("#zoom-fit").addEventListener("click", () => {
+        fitMode = true;
+        fitCanvas();
+      });
+      window.addEventListener("resize", fitCanvas);
+
+      ["dragenter", "dragover"].forEach((name) => {
+        workspace.addEventListener(name, (event) => {
+          event.preventDefault();
+          if (!state.photos.length) dropZone.classList.add("dragover");
+        });
+      });
+      ["dragleave", "drop"].forEach((name) => {
+        workspace.addEventListener(name, (event) => {
+          event.preventDefault();
+          dropZone.classList.remove("dragover");
+        });
+      });
+      workspace.addEventListener("drop", (event) => addFiles(event.dataTransfer.files));
+
+      document.addEventListener("keydown", (event) => {
+        const target = event.target;
+        const typing = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement;
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z" && !typing) {
+          event.preventDefault();
+          if (event.shiftKey) redo(); else undo();
+        }
+      });
+
+      render();
+      updateHistoryButtons();
+    })();
+  </script>
+</body>
+</html>
